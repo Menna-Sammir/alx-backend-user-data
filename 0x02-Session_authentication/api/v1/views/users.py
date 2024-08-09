@@ -16,6 +16,16 @@ def view_all_users() -> str:
     return jsonify(all_users)
 
 
+@app_views.route('/users/me', methods=['GET'], strict_slashes=False)
+def get_user_obj() -> str:
+    """ GET /api/v1/users/me
+    Return:
+      the authenticated User object
+    """
+    all_users = [user.to_json() for user in User.all()]
+    return jsonify(all_users)
+
+
 @app_views.route('/users/<user_id>', methods=['GET'], strict_slashes=False)
 def view_one_user(user_id: str = None) -> str:
     """ GET /api/v1/users/:id
@@ -28,6 +38,12 @@ def view_one_user(user_id: str = None) -> str:
     if user_id is None:
         abort(404)
     user = User.get(user_id)
+    if user_id == 'me':
+        if request.current_user is None:
+            abort(404)
+        user_id = request.current_user.id
+    else:
+        user = User.get(user_id)
     if user is None:
         abort(404)
     return jsonify(user.to_json())
@@ -54,6 +70,14 @@ def delete_user(user_id: str = None) -> str:
 @app_views.route('/users', methods=['POST'], strict_slashes=False)
 def create_user() -> str:
     """ POST /api/v1/users/
+    JSON body:
+      - email
+      - password
+      - last_name (optional)
+      - first_name (optional)
+    Return:
+      - User object JSON represented
+      - 400 if can't create the new User
     """
     rj = None
     error_msg = None
@@ -84,6 +108,15 @@ def create_user() -> str:
 @app_views.route('/users/<user_id>', methods=['PUT'], strict_slashes=False)
 def update_user(user_id: str = None) -> str:
     """ PUT /api/v1/users/:id
+    Path parameter:
+      - User ID
+    JSON body:
+      - last_name (optional)
+      - first_name (optional)
+    Return:
+      - User object JSON represented
+      - 404 if the User ID doesn't exist
+      - 400 if can't update the User
     """
     if user_id is None:
         abort(404)
